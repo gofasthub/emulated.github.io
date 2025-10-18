@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Fake Windows 11 Emulator (Safe Demo)</title>
+  <style>
+    :root{--bg:#0f1720;--panel:#0b1220;--accent:#0ea5a5;--glass:rgba(255,255,255,0.06)}
+    html,body{height:100%;margin:0;font-family:Inter,Segoe UI,system-ui,Arial; background: linear-gradient(180deg,#071026 0%, #0b1220 100%);color:#e6eef6}
+    /* Taskbar */
+    .taskbar{position:fixed;left:0;right:0;bottom:0;height:48px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.2));backdrop-filter:blur(6px);display:flex;align-items:center;padding:0 12px;gap:8px}
+    .start-btn{width:36px;height:36px;border-radius:8px;background:var(--glass);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .task-icons{display:flex;gap:6px;margin-left:8px}
+    .icon{width:36px;height:36px;border-radius:6px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    /* Start menu */
+    .start-menu{position:fixed;left:12px;bottom:64px;width:320px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);display:none}
+    .apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+    .app-card{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer;text-align:center;font-size:12px}
+    /* Windows */
+    .window{position:fixed;width:540px;height:360px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.3));border-radius:10px;box-shadow:0 8px 30px rgba(2,6,23,0.6);overflow:hidden;display:none}
+    .titlebar{height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 8px;background:rgba(255,255,255,0.01)}
+    .title{font-size:13px}
+    .controls{display:flex;gap:6px}
+    .ctrl{width:28px;height:24px;border-radius:6px;background:rgba(255,255,255,0.02);display:flex;align-items:center;justify-content:center;cursor:pointer}
+    .content{padding:12px;height:calc(100% - 36px);overflow:auto}
+    textarea{width:100%;height:100%;box-sizing:border-box;background:transparent;border:1px dashed rgba(255,255,255,0.06);color:inherit;padding:8px;border-radius:6px}
+    button.btn{padding:8px 12px;border-radius:8px;border:none;background:var(--accent);color:#062023;cursor:pointer}
+    /* Effects for "virus" pranks */
+    .glitch{animation:glitch 200ms steps(2) infinite}
+    @keyframes glitch{50%{transform:translateX(6px) skewX(6deg)}}
+    .pixelate{filter:blur(1px) contrast(1.2) saturate(0.6)}
+    .shake{animation:shake 600ms linear}
+    @keyframes shake{0%{transform:translate(0,0)}25%{transform:translate(6px,-4px)}50%{transform:translate(-6px,4px)}75%{transform:translate(4px,-6px)}100%{transform:translate(0,0)}}
+    .bso{position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;color:#fff;font-size:20px;display:none}
+    .bso p{font-size:14px;margin-top:8px;color:#ffd6d6}
+    .restore{position:fixed;right:12px;bottom:70px;background:#1f2937;padding:8px 10px;border-radius:10px;display:none}
+    /* small screens */
+    @media (max-width:640px){.window{width:92%;height:70%}}
+  </style>
+</head>
+<body>
+  <!-- Start menu + taskbar -->
+  <div class="start-menu" id="startMenu">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Apps</strong>
+      <small style="opacity:0.7">Safe demo</small>
+    </div>
+    <div class="apps-grid">
+      <div class="app-card" data-app="notepad">📝<div>Notepad</div></div>
+      <div class="app-card" data-app="calc">🧮<div>Calculator</div></div>
+      <div class="app-card" data-app="browser">🌐<div>Browser</div></div>
+      <div class="app-card" data-app="virus">🦠<div>Prank Virus</div></div>
+      <div class="app-card" data-app="about">ℹ️<div>About</div></div>
+    </div>
+  </div>
+
+  <div class="taskbar">
+    <div class="start-btn" id="startBtn">◻️</div>
+    <div class="task-icons" id="taskIcons"></div>
+    <div style="flex:1"></div>
+    <div style="display:flex;gap:8px;align-items:center;color:#9fb6c0;font-size:13px">English · 18:42</div>
+  </div>
+
+  <!-- Windows -->
+  <div class="window" id="notepadWindow" style="left:80px;top:60px;z-index:10">
+    <div class="titlebar"><div class="title">Notepad</div><div class="controls"><div class="ctrl" data-action="min">—</div><div class="ctrl" data-action="close">✕</div></div></div>
+    <div class="content"><textarea id="notepadText">This is a safe, local notepad. Type anything — no data leaves your browser.</textarea></div>
+  </div>
+
+  <div class="window" id="calcWindow" style="left:120px;top:100px;z-index:11;width:300px;height:320px">
+    <div class="titlebar"><div class="title">Calculator</div><div class="controls"><div class="ctrl" data-action="min">—</div><div class="ctrl" data-action="close">✕</div></div></div>
+    <div class="content">
+      <div id="calcDisplay" style="height:56px;background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:flex-end;padding:8px;font-size:24px;border-radius:6px">0</div>
+      <div style="margin-top:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+        <button class="btn" data-key="7">7</button><button class="btn" data-key="8">8</button><button class="btn" data-key="9">9</button><button class="btn" data-key="/">÷</button>
+        <button class="btn" data-key="4">4</button><button class="btn" data-key="5">5</button><button class="btn" data-key="6">6</button><button class="btn" data-key="*">×</button>
+        <button class="btn" data-key="1">1</button><button class="btn" data-key="2">2</button><button class="btn" data-key="3">3</button><button class="btn" data-key="-">−</button>
+        <button class="btn" data-key="0">0</button><button class="btn" data-key=".">.</button><button class="btn" data-key="=">=</button><button class="btn" data-key="+">+</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="window" id="browserWindow" style="left:200px;top:80px;z-index:12;width:720px;height:480px">
+    <div class="titlebar"><div class="title">Safe Browser (Fake)</div><div class="controls"><div class="ctrl" data-action="min">—</div><div class="ctrl" data-action="close">✕</div></div></div>
+    <div class="content">
+      <div style="display:flex;gap:8px;margin-bottom:8px"><input id="fakeUrl" style="flex:1;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit" value="example.local"/><button class="btn" id="goBtn">Go</button></div>
+      <div id="fakePage" style="height:100%;border-radius:6px;padding:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.2));overflow:auto">
+        <h3>Welcome to example.local</h3>
+        <p>This is a completely fake web page inside the emulator. Use the "Download" button below to trigger a safe prank (it won't download anything or touch your system).</p>
+        <button class="btn" id="fakeDownload">Download installer.exe</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="window" id="aboutWindow" style="left:260px;top:140px;z-index:13;width:420px;height:220px">
+    <div class="titlebar"><div class="title">About</div><div class="controls"><div class="ctrl" data-action="min">—</div><div class="ctrl" data-action="close">✕</div></div></div>
+    <div class="content"><h3>Safe Windows 11 Emulator (Demo)</h3><p>This demo is intentionally safe: it only modifies elements inside this page and never downloads or executes real files. Use the "Prank Virus" app to see funny visual effects — they are reversible with the Restore button.</p></div>
+  </div>
+
+  <!-- Fake BSOD overlay -->
+  <div class="bso" id="bso">
+    <div style="font-size:36px">💥 Whoops!</div>
+    <p>Your fake emulator has encountered a prank virus. Nothing on your real computer is harmed. Press Restore to continue.</p>
+  </div>
+
+  <div class="restore" id="restoreBtn"><button class="btn" id="restoreNow">Restore Emulator</button></div>
+
+  <script>
+    // Utilities
+    const startBtn = document.getElementById('startBtn');
+    const startMenu = document.getElementById('startMenu');
+    const taskIcons = document.getElementById('taskIcons');
+    const restoreBtn = document.getElementById('restoreBtn');
+    const bso = document.getElementById('bso');
+
+    // Toggle Start
+    startBtn.addEventListener('click', ()=> startMenu.style.display = (startMenu.style.display==='block' ? 'none' : 'block'));
+
+    // App launching
+    document.querySelectorAll('.app-card').forEach(a=> a.addEventListener('click', ()=>{
+      const app = a.dataset.app;
+      startMenu.style.display='none';
+      openApp(app);
+    }))
+
+    function addTask(icon, label, id){
+      // avoid duplicates
+      if(document.getElementById('task-'+id)) return;
+      const el = document.createElement('div'); el.className='icon'; el.id='task-'+id; el.textContent=icon; el.title=label;
+      el.addEventListener('click', ()=>{
+        const win = document.getElementById(id+'Window') || document.getElementById(id+ 'window');
+        if(win) { win.style.display='block'; win.style.zIndex = 999; }
+      });
+      taskIcons.appendChild(el);
+    }
+
+    function openApp(app){
+      if(app==='notepad'){ document.getElementById('notepadWindow').style.display='block'; addTask('📝','Notepad','notepad'); }
+      if(app==='calc'){ document.getElementById('calcWindow').style.display='block'; addTask('🧮','Calculator','calc'); }
+      if(app==='browser'){ document.getElementById('browserWindow').style.display='block'; addTask('🌐','Browser','browser'); }
+      if(app==='about'){ document.getElementById('aboutWindow').style.display='block'; addTask('ℹ️','About','about'); }
+      if(app==='virus'){ runPrankVirus(); addTask('🦠','Prank','virus'); }
+    }
+
+    // Window controls (close/min)
+    document.querySelectorAll('.window').forEach(win=>{
+      win.querySelectorAll('.ctrl').forEach(c=> c.addEventListener('click', ()=>{
+        const action = c.dataset.action;
+        if(action==='close'){ win.style.display='none'; }
+        if(action==='min'){ win.style.display='none'; }
+      }))
+
+      // Basic dragging
+      let isDown=false, ox=0, oy=0;
+      const title = win.querySelector('.titlebar');
+      title.addEventListener('pointerdown',(e)=>{ isDown=true; ox = e.clientX - win.offsetLeft; oy = e.clientY - win.offsetTop; win.style.zIndex = 1000; title.setPointerCapture(e.pointerId); });
+      window.addEventListener('pointerup',()=> isDown=false);
+      window.addEventListener('pointermove',(e)=>{ if(!isDown) return; win.style.left = (e.clientX - ox) + 'px'; win.style.top = (e.clientY - oy) + 'px'; });
+    })
+
+    // Calculator
+    (function(){
+      const display = document.getElementById('calcDisplay');
+      let cur='';
+      document.querySelectorAll('#calcWindow .btn').forEach(b=> b.addEventListener('click', ()=>{
+        const k = b.dataset.key;
+        if(k==='='){ try{ cur = String(eval(cur.replace('×','*').replace('÷','/'))); }catch(e){ cur='Err' } }
+        else cur += k;
+        display.textContent = cur || '0';
+      }))
+    })();
+
+    // Fake browser
+    document.getElementById('goBtn').addEventListener('click', ()=>{
+      const url = document.getElementById('fakeUrl').value.trim();
+      const fakePage = document.getElementById('fakePage');
+      fakePage.innerHTML = `<h3>Fake site: ${escapeHtml(url)}</h3><p>This is a toy page inside the emulator. Clicking "Download installer.exe" below will trigger a safe prank inside the page only.</p><button class="btn" id="fakeDownload">Download installer.exe</button>`;
+      document.getElementById('fakeDownload').addEventListener('click', ()=>{
+        // SAFE: NO FILES, NO PROMPTS. Just a visual prank.
+        launchPrankEffects('small');
+      })
+    })
+
+    // small helper to escape html
+    function escapeHtml(s){ return s.replace(/[&<>\"]/g, c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]||c)); }
+
+    // Fake virus/prank effects
+    function runPrankVirus(){
+      // show BSO overlay then do progressive effects
+      bso.style.display='flex'; restoreBtn.style.display='block'; document.body.classList.add('pixelate');
+      setTimeout(()=>{ document.body.classList.add('glitch'); document.querySelectorAll('.window').forEach(w=> w.classList.add('shake')); playBeepSequence(); }, 600);
+    }
+
+    function launchPrankEffects(level='big'){
+      restoreBtn.style.display='block';
+      if(level==='small'){
+        // quick wobble + text scramble in notepad
+        document.getElementById('notepadText').value = '...scanning...\n' + randomGibberish(60) + '\n(do not worry — this is a safe demo)';
+        document.getElementById('notepadWindow').style.display='block';
+        document.getElementById('notepadWindow').classList.add('glitch');
+        setTimeout(()=> document.getElementById('notepadWindow').classList.remove('glitch'),2000);
+      } else {
+        runPrankVirus();
+      }
+    }
+
+    function randomGibberish(n){ const chars='abcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+='; let s=''; for(let i=0;i<n;i++) s+=chars[Math.floor(Math.random()*chars.length)]; return s }
+
+    function playBeepSequence(){
+      try{
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = ctx.currentTime;
+        for(let i=0;i<6;i++){
+          const o = ctx.createOscillator(); const g = ctx.createGain(); o.type='sine'; o.frequency.value = 200 + i*120; g.gain.value = 0.02; o.connect(g); g.connect(ctx.destination); o.start(now + i*0.08); o.stop(now + i*0.08 + 0.06);
+        }
+      }catch(e){ /* audio not allowed */ }
+    }
+
+    // Restore
+    document.getElementById('restoreNow').addEventListener('click', ()=>{
+      bso.style.display='none'; restoreBtn.style.display='none'; document.body.classList.remove('pixelate','glitch'); document.querySelectorAll('.window').forEach(w=> w.classList.remove('shake'));
+      // tidy up notepad
+      const t = document.getElementById('notepadText'); if(t) t.value = t.value.replace(/\.{3}scanning[\s\S]*/,'');
+    })
+
+    // Prevent any accidental navigation or downloads: intercept all link clicks that would leave the page
+    document.addEventListener('click', (e)=>{
+      const a = e.target.closest('a'); if(!a) return; e.preventDefault(); alert('External navigation is blocked in this safe demo.');
+    })
+
+    // Important: This demo never creates or runs real executables, never writes files to disk, and never executes arbitrary code outside this page.
+
+  </script>
+</body>
+</html>
